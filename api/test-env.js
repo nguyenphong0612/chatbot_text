@@ -15,9 +15,19 @@ module.exports = async (req, res) => {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  res.status(200).json({ 
-    status: 'OK', 
-    message: 'Chatbot Text2Text Server đang hoạt động',
+  // Kiểm tra các biến môi trường
+  const envCheck = {
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY ? 
+      `${process.env.OPENAI_API_KEY.substring(0, 10)}...` : 
+      'NOT_SET',
+    SUPABASE_URL: process.env.SUPABASE_URL ? 
+      `${process.env.SUPABASE_URL.substring(0, 20)}...` : 
+      'NOT_SET',
+    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY ? 
+      `${process.env.SUPABASE_SERVICE_ROLE_KEY.substring(0, 10)}...` : 
+      'NOT_SET',
     timestamp: new Date().toISOString()
-  });
+  };
+
+  res.status(200).json(envCheck);
 }; 
