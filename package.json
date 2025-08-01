@@ -4,7 +4,7 @@
   "description": "Chatbot text to text sử dụng OpenAI API",
   "main": "api/chat.js",
   "scripts": {
-    "start": "node api/chat.js",
+    "start": "vercel dev",
     "dev": "vercel dev",
     "build": "echo 'No build step required'"
   },
