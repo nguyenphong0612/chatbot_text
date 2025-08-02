@@ -9,6 +9,7 @@ class ChatbotText2Text {
         
         this.isTyping = false;
         this.conversationHistory = [];
+        this.autoScroll = true;
         
         this.init();
     }
@@ -43,6 +44,17 @@ class ChatbotText2Text {
         this.chatMessages.addEventListener('click', () => {
             this.ensureInputVisible();
         });
+        
+        // Ensure proper scroll behavior
+        this.chatMessages.addEventListener('scroll', () => {
+            // If user scrolls up, don't auto-scroll to bottom
+            const isAtBottom = this.chatMessages.scrollTop + this.chatMessages.clientHeight >= this.chatMessages.scrollHeight - 10;
+            if (isAtBottom) {
+                this.autoScroll = true;
+            } else {
+                this.autoScroll = false;
+            }
+        });
     }
     
     ensureInputVisible() {
@@ -54,8 +66,7 @@ class ChatbotText2Text {
         if (inputContainer) {
             inputContainer.style.display = 'block';
             inputContainer.style.visibility = 'visible';
-            inputContainer.style.position = 'sticky';
-            inputContainer.style.bottom = '0';
+            inputContainer.style.position = 'relative';
             inputContainer.style.zIndex = '1000';
         }
         
@@ -244,6 +255,8 @@ class ChatbotText2Text {
     }
     
     scrollToBottom() {
+        if (!this.autoScroll) return;
+        
         setTimeout(() => {
             // Force scroll to bottom to ensure input is visible
             this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
@@ -255,6 +268,13 @@ class ChatbotText2Text {
                 inputContainer.style.visibility = 'visible';
             }
         }, 100);
+        
+        // Double check after a longer delay
+        setTimeout(() => {
+            if (this.autoScroll) {
+                this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+            }
+        }, 200);
     }
     
     getCurrentTime() {

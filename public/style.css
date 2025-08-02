@@ -93,6 +93,7 @@ body {
     flex-direction: column;
     background: #f8f9fa;
     position: relative;
+    overflow: hidden;
 }
 
 .chat-messages {
@@ -102,7 +103,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 20px;
-    max-height: calc(100vh - 200px);
+    min-height: 0;
 }
 
 /* Messages */
@@ -195,10 +196,10 @@ body {
     border-top: 1px solid #e9ecef;
     display: block !important;
     visibility: visible !important;
-    position: sticky;
-    bottom: 0;
+    position: relative;
     z-index: 1000;
     min-height: 90px;
+    flex-shrink: 0;
 }
 
 .chat-form {
