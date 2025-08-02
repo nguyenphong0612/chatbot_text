@@ -38,6 +38,20 @@ class ChatbotText2Text {
         this.messageInput.addEventListener('input', () => {
             this.autoResizeTextarea();
         });
+        
+        // Ensure input is visible when clicking anywhere in chat
+        this.chatMessages.addEventListener('click', () => {
+            this.ensureInputVisible();
+        });
+    }
+    
+    ensureInputVisible() {
+        // Force ensure input container is visible
+        const inputContainer = document.querySelector('.chat-input-container');
+        if (inputContainer) {
+            inputContainer.style.display = 'block';
+            inputContainer.style.visibility = 'visible';
+        }
     }
     
     autoResizeTextarea() {
@@ -210,7 +224,15 @@ class ChatbotText2Text {
     
     scrollToBottom() {
         setTimeout(() => {
+            // Force scroll to bottom to ensure input is visible
             this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+            
+            // Additional check to ensure input container is visible
+            const inputContainer = document.querySelector('.chat-input-container');
+            if (inputContainer) {
+                inputContainer.style.display = 'block';
+                inputContainer.style.visibility = 'visible';
+            }
         }, 100);
     }
     
