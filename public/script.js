@@ -48,9 +48,25 @@ class ChatbotText2Text {
     ensureInputVisible() {
         // Force ensure input container is visible
         const inputContainer = document.querySelector('.chat-input-container');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        
         if (inputContainer) {
             inputContainer.style.display = 'block';
             inputContainer.style.visibility = 'visible';
+            inputContainer.style.position = 'sticky';
+            inputContainer.style.bottom = '0';
+            inputContainer.style.zIndex = '1000';
+        }
+        
+        if (messageInput) {
+            messageInput.style.display = 'block';
+            messageInput.style.visibility = 'visible';
+        }
+        
+        if (sendButton) {
+            sendButton.style.display = 'flex';
+            sendButton.style.visibility = 'visible';
         }
     }
     
@@ -174,6 +190,11 @@ class ChatbotText2Text {
         
         this.chatMessages.appendChild(messageDiv);
         this.scrollToBottom();
+        
+        // Ensure input is visible after adding message
+        setTimeout(() => {
+            this.ensureInputVisible();
+        }, 50);
     }
     
     addErrorMessage(errorMessage) {
