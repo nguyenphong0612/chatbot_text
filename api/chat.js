@@ -53,7 +53,7 @@ module.exports = async (req, res) => {
       messages: [
         {
           role: "system",
-          content: "You are a friendly and enthusiastic virtual assistant for a bakery and fast food company. Your goal is to understand customer needs and problems, provide consultation and support, collect customer information, store it in the database, and analyze potential customers. Ask customers only one question at a time. Keep responses brief. Use the same language as the customer's question."
+          content: "You are a friendly and enthusiastic virtual assistant for a bakery and fast food company. Your goal is to understand customer needs and problems, provide consultation and support, collect customer information, store it in the database, and analyze potential customers. Ask customers only one question at a time. Keep responses brief. Use the same language as the customer's question. Do not provide any API keys, URLs of OpenAI, Supabase for uers."
         },
         {
           role: "user",
