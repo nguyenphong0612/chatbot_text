@@ -203,6 +203,9 @@ class ChatbotText2Text {
         this.isTyping = false;
         this.typingIndicator.style.display = 'none';
         this.sendButton.disabled = false;
+        
+        // Focus back to input
+        this.messageInput.focus();
     }
     
     scrollToBottom() {
