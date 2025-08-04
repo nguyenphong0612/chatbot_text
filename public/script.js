@@ -418,7 +418,15 @@ class ChatbotText2Text {
                 <i class="fas fa-robot"></i>
             </div>
             <div class="message-content">
-                <p>Xin chào! Tôi là Chatbot Text2Text, trợ lý AI của bạn. Tôi có thể giúp bạn trả lời các câu hỏi, giải thích khái niệm, hoặc chỉ đơn giản là trò chuyện. Hãy bắt đầu cuộc trò chuyện bằng cách nhập tin nhắn bên dưới!</p>
+                <p>🍰 Xin chào! Tôi là trợ lý đặt hàng của Sweet & Fast Delights! Tôi có thể giúp bạn:</p>
+                <ul style="margin: 10px 0; padding-left: 20px;">
+                    <li>📋 Xem menu và giá cả</li>
+                    <li>🍔 Đặt hàng online</li>
+                    <li>🚚 Tư vấn giao hàng</li>
+                    <li>⏰ Kiểm tra giờ mở cửa</li>
+                    <li>🎁 Thông tin khuyến mãi</li>
+                </ul>
+                <p>Bạn cần tôi giúp gì hôm nay?</p>
             </div>
             <div class="message-time">Bây giờ</div>
         `;

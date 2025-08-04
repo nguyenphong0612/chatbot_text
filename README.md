@@ -1,17 +1,33 @@
-# 🤖 Chatbot Text2Text
+# 🍰 Sweet & Fast Delights - Trợ lý đặt hàng
 
-Một chatbot thông minh sử dụng OpenAI API để trả lời các câu hỏi bằng tiếng Việt. Được xây dựng với Node.js, Express và giao diện web hiện đại.
+Hệ thống trợ lý đặt hàng thông minh cho hiệu bánh ngọt và đồ ăn nhanh, sử dụng OpenAI API để tư vấn khách hàng và Supabase để quản lý đơn hàng. Được xây dựng với Node.js, Express và giao diện web hiện đại.
 
 ## ✨ Tính năng
 
-- 💬 Chat real-time với AI
-- 🎨 Giao diện đẹp và responsive
-- 📱 Hỗ trợ mobile
+### 🍰 Cho khách hàng:
+- 💬 Chat real-time với trợ lý AI
+- 📋 Xem menu và giá cả
+- 🛒 Đặt hàng online
+- 🚚 Tư vấn giao hàng
+- ⏰ Kiểm tra giờ mở cửa
+- 🎁 Thông tin khuyến mãi
+- 📱 Giao diện responsive
+
+### 🏪 Cho quản lý:
+- 📊 Dashboard quản lý đơn hàng
+- 📈 Thống kê doanh thu
+- 🔄 Cập nhật trạng thái đơn hàng
+- 👥 Quản lý thông tin khách hàng
+- 📋 Lịch sử đơn hàng
+- 🔔 Thông báo đơn hàng mới
+
+### 🛠️ Kỹ thuật:
 - ⚡ Tốc độ phản hồi nhanh
 - 🔄 Typing indicator
 - 📊 Trạng thái kết nối
-- ⌨️ Phím tắt (Enter để gửi, Shift+Enter để xuống dòng)
-- 🗑️ Xóa chat (Ctrl/Cmd + Enter)
+- ⌨️ Phím tắt
+- 🗑️ Xóa chat
+- 🔗 Tích hợp webhook
 
 ## 🚀 Cài đặt
 

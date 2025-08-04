@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sweet & Fast Delights - Quản lý đơn hàng</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .admin-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .admin-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .orders-table {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .orders-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .orders-table th,
+        .orders-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .orders-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+        
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .status-pending { background: #fff3cd; color: #856404; }
+        .status-confirmed { background: #d1ecf1; color: #0c5460; }
+        .status-preparing { background: #d4edda; color: #155724; }
+        .status-delivering { background: #cce5ff; color: #004085; }
+        .status-completed { background: #d1e7dd; color: #0f5132; }
+        .status-cancelled { background: #f8d7da; color: #721c24; }
+        
+        .action-btn {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 2px;
+            font-size: 12px;
+        }
+        
+        .btn-confirm { background: #28a745; color: white; }
+        .btn-prepare { background: #17a2b8; color: white; }
+        .btn-deliver { background: #007bff; color: white; }
+        .btn-complete { background: #6f42c1; color: white; }
+        .btn-cancel { background: #dc3545; color: white; }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <div class="admin-header">
+            <h1><i class="fas fa-store"></i> Sweet & Fast Delights - Quản lý đơn hàng</h1>
+            <p>Dashboard quản lý đơn hàng và thống kê</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="totalOrders">0</div>
+                <div>Tổng đơn hàng</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="pendingOrders">0</div>
+                <div>Đơn chờ xử lý</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="todayOrders">0</div>
+                <div>Đơn hôm nay</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalRevenue">0đ</div>
+                <div>Doanh thu</div>
+            </div>
+        </div>
+
+        <div class="orders-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Mã đơn hàng</th>
+                        <th>Khách hàng</th>
+                        <th>Sản phẩm</th>
+                        <th>Tổng tiền</th>
+                        <th>Trạng thái</th>
+                        <th>Thời gian</th>
+                        <th>Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody id="ordersTableBody">
+                    <!-- Orders will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        class OrderManager {
+            constructor() {
+                this.orders = [];
+                this.init();
+            }
+
+            async init() {
+                await this.loadOrders();
+                this.updateStats();
+                this.renderOrders();
+                
+                // Auto refresh every 30 seconds
+                setInterval(() => {
+                    this.loadOrders();
+                }, 30000);
+            }
+
+            async loadOrders() {
+                try {
+                    const response = await fetch('/api/orders');
+                    if (response.ok) {
+                        const data = await response.json();
+                        this.orders = data.orders || [];
+                        this.updateStats();
+                        this.renderOrders();
+                    }
+                } catch (error) {
+                    console.error('Error loading orders:', error);
+                }
+            }
+
+            updateStats() {
+                const totalOrders = this.orders.length;
+                const pendingOrders = this.orders.filter(o => o.status === 'pending').length;
+                const todayOrders = this.orders.filter(o => {
+                    const today = new Date().toDateString();
+                    return new Date(o.created_at).toDateString() === today;
+                }).length;
+                const totalRevenue = this.orders
+                    .filter(o => o.status === 'completed')
+                    .reduce((sum, o) => sum + o.total, 0);
+
+                document.getElementById('totalOrders').textContent = totalOrders;
+                document.getElementById('pendingOrders').textContent = pendingOrders;
+                document.getElementById('todayOrders').textContent = todayOrders;
+                document.getElementById('totalRevenue').textContent = totalRevenue.toLocaleString('vi-VN') + 'đ';
+            }
+
+            renderOrders() {
+                const tbody = document.getElementById('ordersTableBody');
+                tbody.innerHTML = '';
+
+                this.orders.forEach(order => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${order.order_id}</td>
+                        <td>${order.customer_info?.name || 'Khách lẻ'}</td>
+                        <td>${this.formatItems(order.items)}</td>
+                        <td>${order.total.toLocaleString('vi-VN')}đ</td>
+                        <td><span class="status-badge status-${order.status}">${this.getStatusText(order.status)}</span></td>
+                        <td>${new Date(order.created_at).toLocaleString('vi-VN')}</td>
+                        <td>${this.getActionButtons(order)}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+
+            formatItems(items) {
+                if (!items || !Array.isArray(items)) return 'N/A';
+                return items.map(item => `${item.name} (x${item.quantity})`).join(', ');
+            }
+
+            getStatusText(status) {
+                const statusMap = {
+                    'pending': 'Chờ xác nhận',
+                    'confirmed': 'Đã xác nhận',
+                    'preparing': 'Đang chuẩn bị',
+                    'delivering': 'Đang giao',
+                    'completed': 'Hoàn thành',
+                    'cancelled': 'Đã hủy'
+                };
+                return statusMap[status] || status;
+            }
+
+            getActionButtons(order) {
+                const buttons = [];
+                
+                if (order.status === 'pending') {
+                    buttons.push(`<button class="action-btn btn-confirm" onclick="orderManager.updateStatus('${order.order_id}', 'confirmed')">Xác nhận</button>`);
+                    buttons.push(`<button class="action-btn btn-cancel" onclick="orderManager.updateStatus('${order.order_id}', 'cancelled')">Hủy</button>`);
+                } else if (order.status === 'confirmed') {
+                    buttons.push(`<button class="action-btn btn-prepare" onclick="orderManager.updateStatus('${order.order_id}', 'preparing')">Chuẩn bị</button>`);
+                } else if (order.status === 'preparing') {
+                    buttons.push(`<button class="action-btn btn-deliver" onclick="orderManager.updateStatus('${order.order_id}', 'delivering')">Giao hàng</button>`);
+                } else if (order.status === 'delivering') {
+                    buttons.push(`<button class="action-btn btn-complete" onclick="orderManager.updateStatus('${order.order_id}', 'completed')">Hoàn thành</button>`);
+                }
+                
+                return buttons.join('');
+            }
+
+            async updateStatus(orderId, newStatus) {
+                try {
+                    const response = await fetch(`/api/orders/${orderId}/status`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ status: newStatus })
+                    });
+
+                    if (response.ok) {
+                        await this.loadOrders();
+                        alert(`Đã cập nhật trạng thái đơn hàng ${orderId}`);
+                    } else {
+                        alert('Có lỗi xảy ra khi cập nhật trạng thái');
+                    }
+                } catch (error) {
+                    console.error('Error updating order status:', error);
+                    alert('Có lỗi xảy ra khi cập nhật trạng thái');
+                }
+            }
+        }
+
+        // Initialize order manager when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            window.orderManager = new OrderManager();
+        });
+    </script>
+</body>
+</html> 
