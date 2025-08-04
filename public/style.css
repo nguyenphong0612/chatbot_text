@@ -371,4 +371,73 @@ body {
 
 .chat-messages::-webkit-scrollbar-thumb:hover {
     background: #a8a8a8;
+}
+
+/* Webhook Controls */
+.webhook-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: 15px;
+}
+
+.webhook-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    border-radius: 50%;
+    width: 35px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 14px;
+}
+
+.webhook-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+}
+
+.webhook-btn:active {
+    transform: scale(0.95);
+}
+
+.webhook-status-text {
+    font-size: 12px;
+    opacity: 0.8;
+    color: white;
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Webhook Status Notifications */
+.webhook-status {
+    animation: slideInRight 0.3s ease;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Responsive adjustments for webhook controls */
+@media (max-width: 768px) {
+    .webhook-controls {
+        margin-left: 10px;
+    }
+    
+    .webhook-status-text {
+        display: none;
+    }
 } 

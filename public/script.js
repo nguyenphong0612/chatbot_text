@@ -6,10 +6,13 @@ class ChatbotText2Text {
         this.chatForm = document.getElementById('chatForm');
         this.typingIndicator = document.getElementById('typingIndicator');
         this.statusIndicator = document.getElementById('statusIndicator');
+        this.sendToWebhookBtn = document.getElementById('sendToWebhookBtn');
+        this.webhookStatus = document.getElementById('webhookStatus');
         
         this.isTyping = false;
         this.conversationHistory = [];
         this.autoScroll = true;
+        this.currentConversationId = null;
         
         this.init();
     }
@@ -54,6 +57,11 @@ class ChatbotText2Text {
             } else {
                 this.autoScroll = false;
             }
+        });
+        
+        // Webhook button click
+        this.sendToWebhookBtn.addEventListener('click', () => {
+            this.sendToWebhook();
         });
     }
     
@@ -159,6 +167,9 @@ class ChatbotText2Text {
                     { role: 'user', content: message },
                     { role: 'assistant', content: data.response }
                 );
+                
+                // Send conversation data to webhook
+                await this.sendToWebhook();
             } else {
                 this.addErrorMessage(data.error || 'Có lỗi xảy ra khi xử lý tin nhắn');
             }
@@ -169,6 +180,111 @@ class ChatbotText2Text {
         } finally {
             this.hideTypingIndicator();
         }
+    }
+    
+    async sendToWebhook() {
+        // Kiểm tra xem có cuộc trò chuyện nào không
+        if (this.conversationHistory.length === 0) {
+            this.showWebhookStatus('Không có cuộc trò chuyện để gửi', 'error');
+            return;
+        }
+        
+        // Cập nhật trạng thái nút
+        this.sendToWebhookBtn.disabled = true;
+        this.sendToWebhookBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        this.updateWebhookStatus('Đang gửi...');
+        
+        try {
+            // Chuẩn bị dữ liệu cuộc trò chuyện
+            const conversationData = {
+                messages: this.conversationHistory,
+                timestamp: new Date().toISOString(),
+                total_messages: this.conversationHistory.length,
+                conversation_id: this.currentConversationId
+            };
+            
+            // Gửi đến webhook
+            const webhookResponse = await fetch('/api/webhook', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    conversation_data: conversationData 
+                })
+            });
+            
+            const webhookData = await webhookResponse.json();
+            
+            if (webhookResponse.ok && webhookData.success) {
+                console.log('Webhook response:', webhookData);
+                
+                // Cập nhật conversation_id từ webhook nếu có
+                if (webhookData.conversation_id) {
+                    this.currentConversationId = webhookData.conversation_id;
+                }
+                
+                // Hiển thị thông báo thành công
+                this.showWebhookStatus('Đã lưu cuộc trò chuyện', 'success');
+                this.updateWebhookStatus('Đã lưu');
+                
+                // Reset nút sau 2 giây
+                setTimeout(() => {
+                    this.resetWebhookButton();
+                }, 2000);
+                
+            } else {
+                console.error('Webhook error:', webhookData.error);
+                this.showWebhookStatus('Lỗi khi lưu cuộc trò chuyện', 'error');
+                this.updateWebhookStatus('Lỗi');
+                this.resetWebhookButton();
+            }
+            
+        } catch (error) {
+            console.error('Lỗi webhook:', error);
+            this.showWebhookStatus('Không thể kết nối webhook', 'error');
+            this.updateWebhookStatus('Lỗi kết nối');
+            this.resetWebhookButton();
+        }
+    }
+    
+    updateWebhookStatus(text) {
+        if (this.webhookStatus) {
+            this.webhookStatus.textContent = text;
+        }
+    }
+    
+    resetWebhookButton() {
+        this.sendToWebhookBtn.disabled = false;
+        this.sendToWebhookBtn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i>';
+    }
+    
+    showWebhookStatus(message, type) {
+        // Tạo thông báo tạm thời
+        const statusDiv = document.createElement('div');
+        statusDiv.className = `webhook-status ${type}`;
+        statusDiv.textContent = message;
+        statusDiv.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 15px;
+            border-radius: 5px;
+            color: white;
+            font-size: 14px;
+            z-index: 1000;
+            background: ${type === 'success' ? '#4CAF50' : '#f44336'};
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        `;
+        
+        document.body.appendChild(statusDiv);
+        
+        // Tự động ẩn sau 3 giây
+        setTimeout(() => {
+            if (statusDiv.parentNode) {
+                statusDiv.parentNode.removeChild(statusDiv);
+            }
+        }, 3000);
     }
     
     addMessage(content, sender) {
@@ -288,6 +404,11 @@ class ChatbotText2Text {
     clearChat() {
         this.chatMessages.innerHTML = '';
         this.conversationHistory = [];
+        this.currentConversationId = null;
+        
+        // Reset webhook status
+        this.updateWebhookStatus('');
+        this.resetWebhookButton();
         
         // Add welcome message back
         const welcomeMessage = document.createElement('div');
