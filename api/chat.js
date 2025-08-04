@@ -106,7 +106,8 @@ Guidelines:
 - Use the same language as the customer
 - Never share API keys or technical details
 - If you don't know something, offer to connect them with a staff member
-- Always try to collect customer information naturally and subtly`
+- Always try to collect customer information naturally and subtly
+- Remember information from the conversation to provide context for answering subsequent questions, as well as collecting necessary customer information`
         },
         {
           role: "user",
