@@ -12,7 +12,7 @@ class ChatbotText2Text {
         this.isTyping = false;
         this.conversationHistory = [];
         this.autoScroll = true;
-        this.currentConversationId = null;
+        this.currentConversationId = null; // Để backend tự tạo
         
         this.init();
     }
@@ -153,24 +153,33 @@ class ChatbotText2Text {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ message })
+                body: JSON.stringify({ 
+                    message,
+                    conversation_id: this.currentConversationId 
+                })
             });
             
             const data = await response.json();
             
-            if (response.ok) {
-                // Add bot response to chat
-                this.addMessage(data.response, 'bot');
-                
-                // Add to conversation history
-                this.conversationHistory.push(
-                    { role: 'user', content: message },
-                    { role: 'assistant', content: data.response }
-                );
-                
-                // Send conversation data to webhook
-                await this.sendToWebhook();
-            } else {
+                         if (response.ok) {
+                 // Add bot response to chat
+                 this.addMessage(data.response, 'bot');
+                 
+                 // Update conversation ID from server (backend tạo)
+                 if (data.conversation_id) {
+                     this.currentConversationId = data.conversation_id;
+                     console.log('Received conversation ID from server:', this.currentConversationId);
+                 }
+                 
+                 // Add to conversation history
+                 this.conversationHistory.push(
+                     { role: 'user', content: message },
+                     { role: 'assistant', content: data.response }
+                 );
+                 
+                 // Send conversation data to webhook
+                 await this.sendToWebhook();
+             } else {
                 this.addErrorMessage(data.error || 'Có lỗi xảy ra khi xử lý tin nhắn');
             }
             
@@ -219,9 +228,11 @@ class ChatbotText2Text {
             if (webhookResponse.ok && webhookData.success) {
                 console.log('Webhook response:', webhookData);
                 
-                // Cập nhật conversation_id từ webhook nếu có
+                // Không cập nhật conversation_id từ webhook nữa
+                // Giữ nguyên conversation_id từ backend để tránh lỗi UUID
                 if (webhookData.conversation_id) {
-                    this.currentConversationId = webhookData.conversation_id;
+                    console.log('Webhook returned conversation_id:', webhookData.conversation_id);
+                    console.log('Keeping current conversation_id from backend:', this.currentConversationId);
                 }
                 
                 // Hiển thị thông báo thành công
@@ -400,11 +411,14 @@ class ChatbotText2Text {
         return `${hours}:${minutes}`;
     }
     
+
+
     // Method to clear chat
     clearChat() {
         this.chatMessages.innerHTML = '';
         this.conversationHistory = [];
-        this.currentConversationId = null;
+        this.currentConversationId = null; // Reset để backend tạo mới
+        console.log('Reset conversation ID, will be created by backend');
         
         // Reset webhook status
         this.updateWebhookStatus('');

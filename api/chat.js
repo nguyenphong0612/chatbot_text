@@ -25,19 +25,40 @@ module.exports = async (req, res) => {
   try {
     const { message, conversation_id, user_info } = req.body;
     
+    console.log('Received request with conversation_id:', conversation_id);
+    
     if (!message) {
       return res.status(400).json({ error: 'Vui lòng nhập tin nhắn' });
     }
 
-    // Tạo conversation mới nếu chưa có
+    // Tạo conversation mới nếu chưa có hoặc conversation_id không hợp lệ
     let currentConversationId = conversation_id;
     if (!currentConversationId) {
+      // Tạo conversation mới khi không có conversation_id
       const newConversation = await db.createConversation();
       currentConversationId = newConversation.conversation_id;
+      console.log('Created new conversation with ID:', currentConversationId);
       
       // Lưu thông tin user nếu có
       if (user_info) {
         await db.saveUserInfo(currentConversationId, user_info);
+      }
+    } else {
+      // Kiểm tra conversation_id có hợp lệ không
+      try {
+        db.validateConversationId(currentConversationId);
+        console.log('Using existing conversation ID:', currentConversationId);
+      } catch (error) {
+        // Nếu conversation_id không hợp lệ, tạo mới
+        console.warn('Invalid conversation ID format, creating new conversation:', currentConversationId);
+        const newConversation = await db.createConversation();
+        currentConversationId = newConversation.conversation_id;
+        console.log('Created new conversation with ID:', currentConversationId);
+        
+        // Lưu thông tin user nếu có
+        if (user_info) {
+          await db.saveUserInfo(currentConversationId, user_info);
+        }
       }
     }
 
