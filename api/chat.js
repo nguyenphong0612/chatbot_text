@@ -62,6 +62,17 @@ module.exports = async (req, res) => {
       }
     }
 
+    // Lấy conversation history từ database để context
+    let conversationHistory = [];
+    try {
+      const conversation = await db.getConversation(currentConversationId);
+      if (conversation && conversation.content) {
+        conversationHistory = conversation.content;
+      }
+    } catch (error) {
+      console.log('Could not load conversation history:', error.message);
+    }
+
     // Lưu user message vào database
     await db.addMessage(currentConversationId, {
       role: 'user',
@@ -69,37 +80,81 @@ module.exports = async (req, res) => {
       timestamp: new Date().toISOString()
     });
 
+    // Chuẩn bị messages cho OpenAI
+    const messages = [
+      {
+        role: "system",
+        content: `You are a friendly Vietnamese virtual assistant for "Sweet & Fast Delights" bakery and fast food company.
+
+COMPANY INFO:
+- Name: Sweet & Fast Delights
+- Website: https://metzbakery.vn/
+- Phone: 0967149228
+- Address: CT7C Spark Dương Nội, Hà Đông, Hà Nội
+- Hours: 7AM-10PM
+- Delivery: $2 within 5 miles
+
+MENU CATEGORIES:
+🍰 Baked Goods: Bánh ngọt, bánh kem, bánh mì
+🍔 Fast Food: Burger, pizza, gà rán
+🥤 Beverages: Nước ép, cà phê, trà sữa
+🌱 Vegan/Gluten-free: Bánh chay, không gluten
+
+CUSTOMER INFO TO COLLECT (subtly):
+- Tên khách hàng
+- Email
+- Số điện thoại
+- Ngành nghề/Công ty
+- Thời gian rảnh
+- Nhu cầu/Vấn đề
+- Ghi chú
+
+CRITICAL RULES - YOU MUST FOLLOW THESE:
+1. ALWAYS respond in Vietnamese
+2. ALWAYS check conversation history before responding
+3. NEVER ask for information that has already been provided
+4. If customer already gave their name, email, phone - DO NOT ask again
+5. Ask ONLY ONE question at a time
+6. If customer asks about menu, provide specific items and prices
+7. If customer wants to order, guide them through the process
+8. If customer has complaints, be empathetic and offer solutions
+9. Be friendly, professional, and helpful
+10. Keep responses concise but informative
+
+CONVERSATION FLOW:
+- First, check if this is a new conversation or continuing
+- If new: Welcome and ask what they need
+- If continuing: Use previous context to provide personalized help
+- Always acknowledge what you already know about the customer
+- Focus on their current request while using their known information
+
+EXAMPLE RESPONSES:
+- "Chào bạn [tên]! Tôi nhớ bạn đã hỏi về [thông tin trước đó]. Bây giờ bạn cần gì thêm?"
+- "Cảm ơn bạn đã cung cấp thông tin. Bây giờ tôi có thể giúp bạn [yêu cầu hiện tại]"
+- "Tôi thấy bạn quan tâm đến [sản phẩm]. Đây là thông tin chi tiết..."`
+
+      }
+    ];
+
+    // Thêm conversation history (chỉ lấy 10 messages gần nhất để tránh token limit)
+    const recentMessages = conversationHistory.slice(-10);
+    for (const msg of recentMessages) {
+      messages.push({
+        role: msg.role,
+        content: msg.content
+      });
+    }
+
+    // Thêm message hiện tại
+    messages.push({
+      role: "user",
+      content: message
+    });
+
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: `You are a friendly virtual assistant for "Sweet & Fast Delights" bakery and fast food company.
-
-ROLES: Help with menu, orders, delivery info, complaints, and collect customer data.
-
-COLLECT THESE CUSTOMER INFO (subtly):
-- Name, Email, Phone, Industry, Availabilities, Problem/needs, Notes, Lead quality
-
-CRITICAL RULES:
-1. REMEMBER what you've already collected - NEVER ask twice
-2. Ask ONLY ONE question at a time - never ask multiple questions at once
-3. Review conversation history before responding
-4. Use collected info to personalize responses
-5. Focus on current request if you have basic info
-
-COMPANY: Sweet & Fast Delights | https://metzbakery.vn/ | 0967149228 | CT7C Spark Dương Nội, Hà Đông, Hà Nội | 7AM-10PM | $2 delivery within 5 miles
-
-MENU: Baked goods, fast food, beverages, vegan/gluten-free options
-
-GUIDELINES: Be polite, use customer's language, keep responses concise, collect info naturally, remember conversation context.`
-        },
-        {
-          role: "user",
-          content: message
-        }
-      ],
-      max_tokens: 500,
+      model: "gpt-3.5-turbo",
+      messages: messages,
+      max_tokens: 800,
       temperature: 0.7,
     });
 
@@ -111,6 +166,29 @@ GUIDELINES: Be polite, use customer's language, keep responses concise, collect 
       content: botResponse,
       timestamp: new Date().toISOString()
     });
+
+    // Tự động phân tích và lưu thông tin khách hàng sau mỗi 3 messages
+    const totalMessages = conversationHistory.length + 2; // +2 vì đã thêm user message và bot response
+    if (totalMessages % 3 === 0) {
+      try {
+        console.log('Auto-analyzing conversation for customer info...');
+        // Gọi API analyze để trích xuất thông tin
+        const analyzeResponse = await fetch(`${req.protocol}://${req.get('host')}/api/analyze`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ conversation_id: currentConversationId })
+        });
+        
+        if (analyzeResponse.ok) {
+          const analyzeData = await analyzeResponse.json();
+          console.log('Analysis result:', analyzeData.analysis);
+        }
+      } catch (analyzeError) {
+        console.log('Auto-analysis failed:', analyzeError.message);
+      }
+    }
     
     res.status(200).json({ 
       response: botResponse,

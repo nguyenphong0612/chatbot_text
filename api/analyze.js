@@ -53,18 +53,27 @@ ${messagesText}
 
 Yêu cầu phân tích:
 1. Trích xuất thông tin user (nếu có):
-   - name: tên người dùng
-   - email: email người dùng  
-   - phone_number: số điện thoại
-   - company: công ty (nếu có)
-   - position: chức vụ (nếu có)
+   - name: tên người dùng (chỉ lấy tên thật, không phải nickname)
+   - email: email người dùng (định dạng email hợp lệ)
+   - phone_number: số điện thoại (định dạng Việt Nam: 0xxx-xxx-xxxx)
+   - company: công ty/ngành nghề (nếu có)
+   - position: chức vụ/vị trí (nếu có)
 
 2. Đánh giá chất lượng lead (lead_quality):
-   - "good": Khách hàng tiềm năng cao, có nhu cầu rõ ràng, sẵn sàng mua
-   - "ok": Khách hàng có quan tâm nhưng chưa quyết định
-   - "spam": Không phải khách hàng tiềm năng, spam, hoặc không liên quan
+   - "good" (5): Khách hàng tiềm năng cao, có nhu cầu rõ ràng, sẵn sàng đặt hàng, cung cấp thông tin liên hệ
+   - "ok" (3): Khách hàng có quan tâm, hỏi thông tin nhưng chưa quyết định mua
+   - "spam" (1): Không phải khách hàng tiềm năng, spam, test, hoặc không liên quan đến mua hàng
 
 3. Lý do đánh giá (reason): Giải thích ngắn gọn tại sao đánh giá như vậy
+
+4. Nhu cầu chính (main_need): Nhu cầu chính của khách hàng (menu, đặt hàng, giao hàng, khiếu nại, v.v.)
+
+5. Trạng thái cuộc trò chuyện (conversation_status):
+   - "active": Cuộc trò chuyện đang diễn ra, khách hàng còn quan tâm
+   - "completed": Cuộc trò chuyện đã kết thúc, khách hàng đã được phục vụ
+   - "abandoned": Cuộc trò chuyện bị bỏ dở
+
+Lưu ý: Chỉ trích xuất thông tin thực sự được cung cấp, không đoán mò.
 
 Trả về JSON format:
 {
@@ -76,7 +85,9 @@ Trả về JSON format:
     "position": "string hoặc null"
   },
   "lead_quality": "good|ok|spam",
-  "reason": "string"
+  "reason": "string",
+  "main_need": "string",
+  "conversation_status": "active|completed|abandoned"
 }
 `;
 
@@ -134,6 +145,15 @@ Trả về JSON format:
           'spam': 1
         };
         updatedUserInfo.lead_quality = leadQualityMap[parsedAnalysis.lead_quality] || 3;
+      }
+
+      // Cập nhật conversation status nếu có
+      if (parsedAnalysis.conversation_status) {
+        try {
+          await db.updateConversationStatus(conversation_id, parsedAnalysis.conversation_status);
+        } catch (error) {
+          console.log('Could not update conversation status:', error.message);
+        }
       }
 
       // Lưu hoặc cập nhật user info
