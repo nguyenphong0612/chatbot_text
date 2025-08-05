@@ -26,6 +26,8 @@
 - Thêm try-catch cho việc lưu bot response
 - Logging chi tiết cho từng bước
 - Kiểm tra cấu trúc bảng trước khi thực hiện thao tác
+- Cải thiện system prompt để thu thập thông tin khách hàng đầy đủ hơn
+- Thêm function kiểm tra thông tin còn thiếu
 
 ### 3. Cải thiện validate conversation ID trong `database.js`
 - Tạm thời chấp nhận format conversation ID khác UUID
@@ -91,6 +93,16 @@ curl -X POST https://hook.eu2.make.com/iffn0r2fo7uex5vxeic3y2t93r8ul66t \
 - Gửi dữ liệu đến Make.com webhook
 - Xử lý dữ liệu trong Make.com scenario
 
+### ✅ Đã cải thiện thêm
+- Thu thập thông tin khách hàng đầy đủ hơn (tên, email, số điện thoại, công ty)
+- System prompt chi tiết hơn với strategy thu thập thông tin
+- Function kiểm tra thông tin còn thiếu
+- Ví dụ cụ thể cho việc thu thập thông tin
+- **Tự động lưu thông tin user vào bảng `info_user`**
+- **Trích xuất thông tin từ conversation bằng regex patterns**
+- **API endpoint `/api/user-info` để xem thông tin user**
+- **Tự động cập nhật thông tin user khi có thông tin mới**
+
 ### ✅ Đã cải thiện
 - Error handling chi tiết hơn
 - Logging để debug
@@ -108,4 +120,26 @@ curl -X POST https://hook.eu2.make.com/iffn0r2fo7uex5vxeic3y2t93r8ul66t \
 1. Kiểm tra logs trong Vercel
 2. Kiểm tra database có conversation mới không
 3. Kiểm tra Make.com webhook logs
-4. Test API trực tiếp 
+4. Test API trực tiếp
+
+## API Endpoints
+
+### 1. Chat API
+- **URL**: `/api/chat`
+- **Method**: POST
+- **Chức năng**: Xử lý chat và tự động lưu thông tin user
+
+### 2. Analyze API
+- **URL**: `/api/analyze`
+- **Method**: POST
+- **Chức năng**: Phân tích conversation và cập nhật thông tin user
+
+### 3. User Info API
+- **URL**: `/api/user-info?conversation_id=xxx`
+- **Method**: GET
+- **Chức năng**: Lấy thông tin user đã lưu
+
+### 4. Webhook API
+- **URL**: `/api/webhook`
+- **Method**: POST
+- **Chức năng**: Gửi dữ liệu đến Make.com 
