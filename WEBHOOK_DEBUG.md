@@ -25,16 +25,24 @@
 - Thêm try-catch cho việc lưu user message
 - Thêm try-catch cho việc lưu bot response
 - Logging chi tiết cho từng bước
+- Kiểm tra cấu trúc bảng trước khi thực hiện thao tác
 
 ### 3. Cải thiện validate conversation ID trong `database.js`
 - Tạm thời chấp nhận format conversation ID khác UUID
 - Thêm warning thay vì throw error
 - Giảm strict validation để tránh lỗi
+- Thêm logging chi tiết cho việc tạo và cập nhật conversation
+- Thêm function kiểm tra cấu trúc bảng
 
 ### 4. Cải thiện xử lý lỗi trong `script.js`
 - Webhook failure không block conversation flow
 - Thêm try-catch để xử lý lỗi webhook riêng biệt
 - Không hiển thị lỗi webhook cho user nếu conversation đã được lưu thành công
+
+### 5. Cải thiện kết nối Supabase trong `supabase.js`
+- Thêm logging cho environment variables
+- Thêm test connection khi khởi tạo
+- Hiển thị trạng thái kết nối
 
 ## Cách kiểm tra và debug
 

@@ -30,6 +30,18 @@ module.exports = async (req, res) => {
     console.log('Message:', message);
     console.log('User info:', user_info);
     
+    // Kiểm tra cấu trúc bảng trước khi thực hiện các thao tác
+    console.log('Checking database table structure...');
+    const tableStructureOk = await db.checkTableStructure();
+    if (!tableStructureOk) {
+      console.error('❌ Database table structure check failed');
+      return res.status(500).json({ 
+        error: 'Database configuration error',
+        details: 'Table structure check failed'
+      });
+    }
+    console.log('✅ Database table structure check passed');
+    
     if (!message) {
       return res.status(400).json({ error: 'Vui lòng nhập tin nhắn' });
     }
