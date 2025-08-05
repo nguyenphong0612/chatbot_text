@@ -25,7 +25,10 @@ module.exports = async (req, res) => {
   try {
     const { message, conversation_id, user_info } = req.body;
     
+    console.log('=== CHAT API DEBUG ===');
     console.log('Received request with conversation_id:', conversation_id);
+    console.log('Message:', message);
+    console.log('User info:', user_info);
     
     if (!message) {
       return res.status(400).json({ error: 'Vui lòng nhập tin nhắn' });
@@ -33,52 +36,73 @@ module.exports = async (req, res) => {
 
     // Tạo conversation mới nếu chưa có hoặc conversation_id không hợp lệ
     let currentConversationId = conversation_id;
-    if (!currentConversationId) {
-      // Tạo conversation mới khi không có conversation_id
-      const newConversation = await db.createConversation();
-      currentConversationId = newConversation.conversation_id;
-      console.log('Created new conversation with ID:', currentConversationId);
-      
-      // Lưu thông tin user nếu có
-      if (user_info) {
-        await db.saveUserInfo(currentConversationId, user_info);
-      }
-    } else {
-      // Kiểm tra conversation_id có hợp lệ không
-      try {
-        db.validateConversationId(currentConversationId);
-        console.log('Using existing conversation ID:', currentConversationId);
-      } catch (error) {
-        // Nếu conversation_id không hợp lệ, tạo mới
-        console.warn('Invalid conversation ID format, creating new conversation:', currentConversationId);
+    try {
+      if (!currentConversationId) {
+        // Tạo conversation mới khi không có conversation_id
+        console.log('Creating new conversation...');
         const newConversation = await db.createConversation();
         currentConversationId = newConversation.conversation_id;
-        console.log('Created new conversation with ID:', currentConversationId);
+        console.log('✅ Created new conversation with ID:', currentConversationId);
         
         // Lưu thông tin user nếu có
         if (user_info) {
+          console.log('Saving user info...');
           await db.saveUserInfo(currentConversationId, user_info);
+          console.log('✅ User info saved');
+        }
+      } else {
+        // Kiểm tra conversation_id có hợp lệ không
+        try {
+          db.validateConversationId(currentConversationId);
+          console.log('✅ Using existing conversation ID:', currentConversationId);
+        } catch (error) {
+          // Nếu conversation_id không hợp lệ, tạo mới
+          console.warn('❌ Invalid conversation ID format, creating new conversation:', currentConversationId);
+          const newConversation = await db.createConversation();
+          currentConversationId = newConversation.conversation_id;
+          console.log('✅ Created new conversation with ID:', currentConversationId);
+          
+          // Lưu thông tin user nếu có
+          if (user_info) {
+            console.log('Saving user info...');
+            await db.saveUserInfo(currentConversationId, user_info);
+            console.log('✅ User info saved');
+          }
         }
       }
+    } catch (error) {
+      console.error('❌ Error creating/validating conversation:', error);
+      throw new Error(`Database error: ${error.message}`);
     }
 
     // Lấy conversation history từ database để context
     let conversationHistory = [];
     try {
+      console.log('Loading conversation history...');
       const conversation = await db.getConversation(currentConversationId);
       if (conversation && conversation.content) {
         conversationHistory = conversation.content;
+        console.log('✅ Loaded conversation history, messages count:', conversationHistory.length);
+      } else {
+        console.log('No existing conversation history found');
       }
     } catch (error) {
-      console.log('Could not load conversation history:', error.message);
+      console.log('❌ Could not load conversation history:', error.message);
     }
 
     // Lưu user message vào database
-    await db.addMessage(currentConversationId, {
-      role: 'user',
-      content: message,
-      timestamp: new Date().toISOString()
-    });
+    console.log('Saving user message to database...');
+    try {
+      await db.addMessage(currentConversationId, {
+        role: 'user',
+        content: message,
+        timestamp: new Date().toISOString()
+      });
+      console.log('✅ User message saved');
+    } catch (error) {
+      console.error('❌ Error saving user message:', error);
+      throw new Error(`Failed to save user message: ${error.message}`);
+    }
 
     // Chuẩn bị messages cho OpenAI
     const messages = [
@@ -151,6 +175,7 @@ EXAMPLE RESPONSES:
       content: message
     });
 
+    console.log('Calling OpenAI API...');
     const completion = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
       messages: messages,
@@ -159,13 +184,21 @@ EXAMPLE RESPONSES:
     });
 
     const botResponse = completion.choices[0].message.content;
+    console.log('✅ Received OpenAI response');
     
     // Lưu bot response vào database
-    await db.addMessage(currentConversationId, {
-      role: 'assistant',
-      content: botResponse,
-      timestamp: new Date().toISOString()
-    });
+    console.log('Saving bot response to database...');
+    try {
+      await db.addMessage(currentConversationId, {
+        role: 'assistant',
+        content: botResponse,
+        timestamp: new Date().toISOString()
+      });
+      console.log('✅ Bot response saved');
+    } catch (error) {
+      console.error('❌ Error saving bot response:', error);
+      throw new Error(`Failed to save bot response: ${error.message}`);
+    }
 
     // Tự động phân tích và lưu thông tin khách hàng sau mỗi 3 messages
     const totalMessages = conversationHistory.length + 2; // +2 vì đã thêm user message và bot response
@@ -183,13 +216,14 @@ EXAMPLE RESPONSES:
         
         if (analyzeResponse.ok) {
           const analyzeData = await analyzeResponse.json();
-          console.log('Analysis result:', analyzeData.analysis);
+          console.log('✅ Analysis result:', analyzeData.analysis);
         }
       } catch (analyzeError) {
-        console.log('Auto-analysis failed:', analyzeError.message);
+        console.log('❌ Auto-analysis failed:', analyzeError.message);
       }
     }
     
+    console.log('=== CHAT API COMPLETED ===');
     res.status(200).json({ 
       response: botResponse,
       conversation_id: currentConversationId,
@@ -197,7 +231,10 @@ EXAMPLE RESPONSES:
     });
 
   } catch (error) {
-    console.error('Lỗi OpenAI:', error);
+    console.error('=== CHAT API ERROR ===');
+    console.error('Error details:', error);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
     
     let errorMessage = 'Có lỗi xảy ra khi xử lý yêu cầu';
     

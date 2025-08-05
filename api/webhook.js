@@ -24,18 +24,26 @@ module.exports = async (req, res) => {
       return res.status(400).json({ error: 'conversation_data is required' });
     }
 
+    // Log dữ liệu đầu vào để debug
+    console.log('Webhook input data:', JSON.stringify(conversation_data, null, 2));
+
     // Webhook URL
     const webhookUrl = 'https://hook.eu2.make.com/iffn0r2fo7uex5vxeic3y2t93r8ul66t';
 
     // Gửi dữ liệu đến webhook
+    console.log('Sending data to webhook:', webhookUrl);
+    
     const webhookResponse = await axios.post(webhookUrl, {
       conversation_data: conversation_data
     }, {
       headers: {
         'Content-Type': 'application/json'
       },
-      timeout: 10000 // 10 giây timeout
+      timeout: 15000 // Tăng timeout lên 15 giây
     });
+
+    console.log('Webhook response status:', webhookResponse.status);
+    console.log('Webhook response data:', webhookResponse.data);
 
     // Kiểm tra response từ webhook
     if (webhookResponse.status === 200) {
@@ -64,21 +72,67 @@ module.exports = async (req, res) => {
     }
 
   } catch (error) {
-    console.error('Webhook Error:', error);
+    console.error('Webhook Error Details:');
+    console.error('Error message:', error.message);
+    console.error('Error code:', error.code);
+    console.error('Error status:', error.response?.status);
+    console.error('Error data:', error.response?.data);
+    console.error('Error config:', {
+      url: error.config?.url,
+      method: error.config?.method,
+      timeout: error.config?.timeout,
+      headers: error.config?.headers
+    });
     
     let errorMessage = 'Có lỗi xảy ra khi kết nối với webhook';
+    let statusCode = 500;
     
     if (error.code === 'ECONNREFUSED') {
       errorMessage = 'Không thể kết nối đến webhook. Vui lòng kiểm tra URL.';
+      statusCode = 503;
     } else if (error.code === 'ETIMEDOUT') {
       errorMessage = 'Webhook không phản hồi trong thời gian chờ.';
+      statusCode = 504;
     } else if (error.response) {
-      errorMessage = `Webhook trả về lỗi: ${error.response.status}`;
+      // Xử lý các status code khác nhau
+      switch (error.response.status) {
+        case 400:
+          errorMessage = 'Dữ liệu gửi đến webhook không hợp lệ.';
+          statusCode = 400;
+          break;
+        case 401:
+          errorMessage = 'Không có quyền truy cập webhook.';
+          statusCode = 401;
+          break;
+        case 403:
+          errorMessage = 'Truy cập bị từ chối bởi webhook.';
+          statusCode = 403;
+          break;
+        case 404:
+          errorMessage = 'Webhook không tồn tại.';
+          statusCode = 404;
+          break;
+        case 500:
+          errorMessage = 'Webhook gặp lỗi nội bộ. Vui lòng thử lại sau.';
+          statusCode = 502; // Bad Gateway
+          break;
+        case 502:
+        case 503:
+        case 504:
+          errorMessage = 'Webhook tạm thời không khả dụng. Vui lòng thử lại sau.';
+          statusCode = 502;
+          break;
+        default:
+          errorMessage = `Webhook trả về lỗi: ${error.response.status}`;
+          statusCode = 502;
+      }
     }
     
-    res.status(500).json({ 
+    res.status(statusCode).json({ 
       error: errorMessage,
-      details: error.message 
+      details: error.message,
+      status: error.response?.status,
+      webhook_data: error.response?.data
     });
   }
 }; 

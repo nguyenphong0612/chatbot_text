@@ -177,8 +177,13 @@ class ChatbotText2Text {
                      { role: 'assistant', content: data.response }
                  );
                  
-                 // Send conversation data to webhook
-                 await this.sendToWebhook();
+                 // Send conversation data to webhook (không block nếu lỗi)
+                 try {
+                     await this.sendToWebhook();
+                 } catch (webhookError) {
+                     console.warn('Webhook failed but conversation was saved:', webhookError);
+                     // Không hiển thị lỗi cho user vì conversation đã được lưu thành công
+                 }
              } else {
                 this.addErrorMessage(data.error || 'Có lỗi xảy ra khi xử lý tin nhắn');
             }
@@ -194,14 +199,16 @@ class ChatbotText2Text {
     async sendToWebhook() {
         // Kiểm tra xem có cuộc trò chuyện nào không
         if (this.conversationHistory.length === 0) {
-            this.showWebhookStatus('Không có cuộc trò chuyện để gửi', 'error');
+            console.log('No conversation to send to webhook');
             return;
         }
         
-        // Cập nhật trạng thái nút
-        this.sendToWebhookBtn.disabled = true;
-        this.sendToWebhookBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        this.updateWebhookStatus('Đang gửi...');
+        // Cập nhật trạng thái nút nếu có
+        if (this.sendToWebhookBtn) {
+            this.sendToWebhookBtn.disabled = true;
+            this.sendToWebhookBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            this.updateWebhookStatus('Đang gửi...');
+        }
         
         try {
             // Chuẩn bị dữ liệu cuộc trò chuyện
@@ -211,6 +218,8 @@ class ChatbotText2Text {
                 total_messages: this.conversationHistory.length,
                 conversation_id: this.currentConversationId
             };
+            
+            console.log('Sending to webhook:', conversationData);
             
             // Gửi đến webhook
             const webhookResponse = await fetch('/api/webhook', {
@@ -226,36 +235,35 @@ class ChatbotText2Text {
             const webhookData = await webhookResponse.json();
             
             if (webhookResponse.ok && webhookData.success) {
-                console.log('Webhook response:', webhookData);
-                
-                // Không cập nhật conversation_id từ webhook nữa
-                // Giữ nguyên conversation_id từ backend để tránh lỗi UUID
-                if (webhookData.conversation_id) {
-                    console.log('Webhook returned conversation_id:', webhookData.conversation_id);
-                    console.log('Keeping current conversation_id from backend:', this.currentConversationId);
-                }
+                console.log('✅ Webhook success:', webhookData);
                 
                 // Hiển thị thông báo thành công
-                this.showWebhookStatus('Đã lưu cuộc trò chuyện', 'success');
-                this.updateWebhookStatus('Đã lưu');
-                
-                // Reset nút sau 2 giây
-                setTimeout(() => {
-                    this.resetWebhookButton();
-                }, 2000);
+                if (this.sendToWebhookBtn) {
+                    this.showWebhookStatus('Đã lưu cuộc trò chuyện', 'success');
+                    this.updateWebhookStatus('Đã lưu');
+                    
+                    // Reset nút sau 2 giây
+                    setTimeout(() => {
+                        this.resetWebhookButton();
+                    }, 2000);
+                }
                 
             } else {
-                console.error('Webhook error:', webhookData.error);
-                this.showWebhookStatus('Lỗi khi lưu cuộc trò chuyện', 'error');
-                this.updateWebhookStatus('Lỗi');
-                this.resetWebhookButton();
+                console.error('❌ Webhook error:', webhookData.error);
+                if (this.sendToWebhookBtn) {
+                    this.showWebhookStatus('Lỗi khi lưu cuộc trò chuyện', 'error');
+                    this.updateWebhookStatus('Lỗi');
+                    this.resetWebhookButton();
+                }
             }
             
         } catch (error) {
-            console.error('Lỗi webhook:', error);
-            this.showWebhookStatus('Không thể kết nối webhook', 'error');
-            this.updateWebhookStatus('Lỗi kết nối');
-            this.resetWebhookButton();
+            console.error('❌ Webhook connection error:', error);
+            if (this.sendToWebhookBtn) {
+                this.showWebhookStatus('Không thể kết nối webhook', 'error');
+                this.updateWebhookStatus('Lỗi kết nối');
+                this.resetWebhookButton();
+            }
         }
     }
     
