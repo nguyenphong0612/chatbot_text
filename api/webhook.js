@@ -41,10 +41,20 @@ module.exports = async (req, res) => {
     if (webhookResponse.status === 200) {
       const webhookData = webhookResponse.data;
       
+      // Kiểm tra và xử lý conversation_id từ webhook
+      let conversationId = webhookData.conversation_id;
+      
+      // Nếu webhook trả về conversation_id không phải UUID format, 
+      // chúng ta sẽ không sử dụng nó để tránh lỗi database
+      if (conversationId && !conversationId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)) {
+        console.warn('Webhook returned invalid conversation_id format:', conversationId);
+        conversationId = null; // Không sử dụng conversation_id không hợp lệ
+      }
+      
       // Trả về dữ liệu từ webhook
       res.status(200).json({
         success: true,
-        conversation_id: webhookData.conversation_id,
+        conversation_id: conversationId, // Có thể là null nếu không hợp lệ
         messages: webhookData.messages,
         timestamp: webhookData.timestamp,
         webhook_response: webhookData
